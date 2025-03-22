@@ -1,0 +1,27 @@
+{
+  "name": "web-game-server",
+  "version": "1.0.0",
+  "description": "",
+  "license": "MIT",
+  "author": "",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "NODE_ENV=development concurrently \"tsc -w\" \"nodemon dist/server.js\""
+  },
+  "dependencies": {
+    "web-game-common": "file:../common",
+    "ws": "^8.18.1",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/ws": "^8.18.0",
+    "concurrently": "^9.1.2",
+    "nodemon": "^3.1.9",
+    "typescript": "^5.8.2",
+    "vite": "^6.2.1"
+  }
+}

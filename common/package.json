@@ -1,0 +1,16 @@
+{
+  "name": "web-game-common",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/common.ts"
+  },
+  "types": "./src/common.ts",
+  "devDependencies": {
+    "typescript": "^5.8.2"
+  }
+}
