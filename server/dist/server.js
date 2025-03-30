@@ -1,5 +1,4 @@
 import express from 'express';
-import * as vite from 'vite';
 import * as http from 'http';
 import { WebSocketServer } from 'ws';
 import { removeById } from 'web-game-common';
@@ -10,6 +9,7 @@ const app = express();
  */
 if (process.env.NODE_ENV === 'development') {
     console.log('Using Vite development server.');
+    const vite = await import('vite');
     const viteDevServer = await vite.createServer({
         server: {
             middlewareMode: true

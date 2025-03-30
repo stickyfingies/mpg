@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-game
+  labels:
+    app: web-game
+spec:
+  replicas: 1  # Keep this at 1 to ensure all clients connect to the same instance
+  selector:
+    matchLabels:
+      app: web-game
+  template:
+    metadata:
+      labels:
+        app: web-game
+    spec:
+      containers:
+      - name: web-game
+        image: us-central1-docker.pkg.dev/sethsrobot/web-game/web-game:latest  # This will be replaced by Cloud Build
+        ports:
+        - containerPort: 8080
+        resources:
+          limits:
+            cpu: "1"
+            memory: "512Mi"
+          requests:
+            cpu: "500m"
+            memory: "256Mi"
+        env:
+        - name: NODE_ENV
+          value: "production"

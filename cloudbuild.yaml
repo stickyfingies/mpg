@@ -1,0 +1,81 @@
+steps:
+  # Build the common package
+  - name: 'node:23'
+    id: 'build-common'
+    dir: 'common'
+    entrypoint: 'npm'
+    args: ['install']
+
+  # Build the client
+  - name: 'node:23'
+    id: 'build-client'
+    dir: 'client'
+    entrypoint: 'npm'
+    args: ['install']
+    waitFor: ['build-common']
+  
+  - name: 'node:23'
+    dir: 'client'
+    entrypoint: 'npm'
+    args: ['run', 'build']
+    waitFor: ['-']
+
+  # Build the server
+  - name: 'node:23'
+    id: 'build-server'
+    dir: 'server'
+    entrypoint: 'npm'
+    args: ['install']
+    waitFor: ['build-common']
+  
+  - name: 'node:23'
+    dir: 'server'
+    entrypoint: 'npm'
+    args: ['run', 'build']
+    waitFor: ['-']
+
+  # Build and push the Docker image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build',
+      '-t', '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/web-game:$COMMIT_SHA',
+      '-t', '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/web-game:latest',
+      '.'
+    ]
+    waitFor: ['build-client', 'build-server']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/web-game:$COMMIT_SHA']
+  
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/web-game:latest']
+
+  # Update Kubernetes deployment file with the new image
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        sed -i "s|REGISTRY_URL|${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}|g" k8s/deployment.yaml
+
+  # Deploy to GKE
+  - name: 'gcr.io/cloud-builders/kubectl'
+    args: ['apply', '-f', 'k8s/deployment.yaml']
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
+
+  - name: 'gcr.io/cloud-builders/kubectl'
+    args: ['apply', '-f', 'k8s/service.yaml']
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
+
+substitutions:
+  _REPOSITORY: web-game
+  _REGION: us-central1
+  _CLUSTER_NAME: web-game-cluster
+
+images:
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/web-game:$COMMIT_SHA'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/web-game:latest'

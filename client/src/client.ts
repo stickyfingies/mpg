@@ -7,7 +7,9 @@ let players: Player[] = [];
 
 function connectToWebSocketServer(): Promise<WebSocket> {
   return new Promise(function (resolve, reject) {
-    var server = new WebSocket(`ws://${location.hostname}:8080`);
+    // Use the same port as the website (80 in production, location.port elsewhere)
+    const wsPort = location.port || (location.protocol === 'https:' ? '443' : '80');
+    var server = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.hostname}${wsPort !== '80' && wsPort !== '443' ? ':' + wsPort : ''}`);
     server.onopen = function () {
       resolve(server);
     };
