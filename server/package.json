@@ -7,9 +7,9 @@
   "type": "module",
   "main": "dist/server.js",
   "scripts": {
-    "build": "tsc",
+    "build": "npx tsc",
     "start": "node dist/server.js",
-    "dev": "NODE_ENV=development concurrently \"tsc -w\" \"nodemon dist/server.js\""
+    "dev": "NODE_ENV=development npx concurrently \"tsc -w\" \"nodemon dist/server.js\""
   },
   "dependencies": {
     "web-game-common": "file:../common",
