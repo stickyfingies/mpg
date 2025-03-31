@@ -1,9 +1,9 @@
 #!/bin/bash
-
-# This script generates self-signed HTTPS certificates for use on localhost.
-
-# Exit on any error
 set -eou pipefail
+
+###
+# This script generates self-signed SSL certificates for local HTTPS development.
+###
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 

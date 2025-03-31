@@ -1,19 +1,30 @@
 # Multiplayer Web Game
 
-A web-based multiplayer game with a Node.js WebSocket server.
+**What is it?** A web-based multiplayer game deployed on GKE based on Node.js, WebGL2, and WebSockets.
+
+**Why make this?** to practice building and deploying real-time distributed systems.
+
+The README is partially a description of the project itself, and partially a tutorial to make it run on your own GCP infrastructure.
 
 ## Quick Start
 
-This project is developed on Arch Linux and I don't care about Windows or MacOS.
+I made the project on Arch Linux btw and haven't tested these instructions on other Linux distributions.
+
+The project uses [Make](https://en.wikipedia.org/wiki/Make_(software)) as the primary interface for build and deployment automation.
 
 ### Development
 
-1. **Optional:** Generate self-signed SSL certificates for testing local HTTPS traffic.  Beware, cuz the browser will complain.
+1. **Optional - not required:** Generate self-signed SSL certificates and keys for the development server:
    ```sh
    make certs
    ```
 
-2. Launch the development server, which auto-magically updates the running app when you change any code:
+2. Build the project's front-end and back-end applications:
+   ```sh
+   make build
+   ```
+
+3. Start the Vite development server for real-time updates:
    ```sh
    make dev
    ```
@@ -22,94 +33,51 @@ This project is developed on Arch Linux and I don't care about Windows or MacOS.
 
 #### Local Docker Deployment
 
-This project uses [Docker](https://wiki.archlinux.org/title/Docker) to package, ship, and run the web application.
+Make sure you have [Docker](https://wiki.archlinux.org/title/Docker) installed and the Daemon is running.
 
-To build the Docker image locally:
+Build the application's Docker image and run it locally:
 ```sh
-make build-docker
-make run-docker
+make docker-build
+make docker-run
 ```
 
-#### Google Cloud Deployment with Managed HTTPS
+**Note**: Don't be an idiot like me and use `sudo` with docker commands. If you're getting Docker permission issues just add your user to the docker group instead:
+```sh
+sudo usermod -aG docker $USER
+# Then log out and back in
+```
 
-The project uses Terraform to provision and manage Google Cloud Platform infrastructure with secure HTTPS support using Google-managed SSL certificates:
+#### Google Cloud Deployment
 
-1. Install prerequisites:
-   - [Google Cloud SDK](https://cloud.google.com/sdk/docs/install)
-   - [Terraform](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli)
-   - [kubectl](https://kubernetes.io/docs/tasks/tools/)
-   - A domain name you control (for SSL certificates)
+Your machine must have [Terraform](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli), the [Google Cloud SDK](https://cloud.google.com/sdk/docs/install), and [kubectl](https://kubernetes.io/docs/tasks/tools/) installed to properly deploy the application onto GKE.
+
+1. Replace the values in `terraform/terraform.tfvars` to match your GCP project name and GitHub username/repo, since you obviously can't use mine.
 
 2. Authenticate with Google Cloud:
-   ```
+   ```sh
    gcloud auth login
    gcloud auth application-default login
    ```
 
-3. Initialize Terraform:
-   ```
-   make terraform-init
-   ```
-
-4. Apply Terraform configuration:
-   ```
-   make terraform-apply
-   ```
-
-5. Deploy to GKE with HTTPS:
-   ```
+3. Build the Terraform and deploy to GKE:
+   ```sh
    make deploy-gke
    ```
    
-   When prompted, you can:
-   - Choose Option 1 to use an automatic domain with nip.io (e.g., `203.0.113.1.nip.io`)
-   - Choose Option 2 to enter your own domain name (e.g., `game.example.com`)
-   
-   **Note**: Do not use `sudo` with the deployment commands. If you're getting Docker permission issues, add your user to the docker group instead:
-   ```
-   sudo usermod -aG docker $USER
-   # Then log out and back in
-   ```
-
-6. DNS Configuration (only if using your own domain):
-   - Create an A record in your domain's DNS settings pointing to the static IP provided during deployment
-   - Google-managed certificates will be automatically provisioned (this takes 15-60 minutes after DNS propagation)
-   
-   If using nip.io:
-   - No DNS configuration is required
-   - Certificate provisioning should start automatically
-   
-7. Check certificate status:
-   ```
+4. Check certificate status:
+   ```sh
+   # Will be 'Provisioning' for 15-60 minutes until 'Active'
    kubectl describe managedcertificate web-game-certificate
    ```
 
-8. Re-deploy to GKE:
-   ```
-   kubectl rollout restart deployment/web-game
-   ```
-
-This will deploy your game to a single-instance GKE cluster to ensure all clients connect to the same server.
-
-### Infrastructure Architecture
+## Infrastructure Architecture
 
 - Google Kubernetes Engine (GKE) cluster with a single replica for the game server
 - Google Artifact Registry for storing Docker images
-- Cloud Build for CI/CD
+- Cloud Build for CI/CD (broken atm)
 - Ingress controller with Google-managed SSL certificates for HTTPS
 - Global static IP address for consistent domain configuration
 - Terraform for Infrastructure as Code
-- Kustomize for Kubernetes manifest management
-
-### CI/CD Pipeline
-
-Pushing to the `master` branch triggers an automatic build and deployment via Cloud Build.
-
-The CI/CD pipeline:
-1. Builds the common, client, and server packages
-2. Creates a Docker image
-3. Pushes the image to Artifact Registry
-4. Updates the GKE deployment with the new image
 
 ## Directory Structure
 
@@ -118,6 +86,7 @@ The CI/CD pipeline:
 - `/common` - Shared code between client and server
 - `/terraform` - Infrastructure as Code files
 - `/k8s` - Kubernetes manifest files
+- `/certificates` - Local SSL certificates (.gitignore'd)
 
 ## Troubleshooting
 
@@ -187,9 +156,3 @@ If you see errors like `Unauthenticated request` or `Permission denied`:
    # Check certificate status
    kubectl describe managedcertificate web-game-certificate
    ```
-
-2. **Certificate fails to provision**: 
-   - For custom domains: Ensure the domain is registered and DNS is properly configured. Google-managed certificates require proper DNS configuration to validate domain ownership.
-   - For nip.io domains: Try redeploying with a different static IP if there are issues with the current one.
-
-3. **Mixed content warnings**: If your site loads over HTTPS but shows mixed content warnings, make sure your client code is using secure WebSocket connections (wss:// instead of ws://) when the page is loaded over HTTPS.

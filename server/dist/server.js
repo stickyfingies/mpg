@@ -23,6 +23,7 @@ if (process.env.NODE_ENV === 'development') {
     app.use(viteDevServer.middlewares);
 }
 else {
+    console.log('Using static file serving');
     app.use(express.static('../client/dist'));
 }
 // Determine if we're in a local or production environment

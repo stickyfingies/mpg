@@ -1,6 +1,5 @@
 .PHONY: certs dev build docker-build docker-run terraform-init terraform-plan terraform-apply terraform-destroy deploy-gke
 
-# Help target
 help:
 	@echo "Available targets:"
 	@echo "  certs            - Generate SSL certificates"
@@ -15,8 +14,9 @@ help:
 	@echo "  deploy-gke       - Deploy the application to GKE with HTTPS"
 	@echo "  help             - Show this help message"
 
-# Default target
 .DEFAULT_GOAL := help
+
+##########
 
 certs:
 	sh make-certs.sh
@@ -24,8 +24,16 @@ certs:
 dev:
 	cd server && npm run dev
 
-build:
-	sh build.sh
+build-common:
+	cd common && npm install
+
+build-client:
+	cd client && npm install && npm run build
+
+build-server:
+	cd server && npm install && npm run build
+
+build: build-common build-client build-server
 
 docker-build: build
 	docker build -t web-game .
