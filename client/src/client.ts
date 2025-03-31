@@ -77,17 +77,117 @@ function connectToWebSocketServer(): Promise<WebSocket> {
   const canvasElement = document.getElementById('canvas') as HTMLCanvasElement;
   canvasElement.width = CANVAS_WIDTH;
   canvasElement.height = CANVAS_HEIGHT;
-  const ctx = canvasElement.getContext('2d')!;
-
+  
+  // Get WebGL2 context
+  const gl = canvasElement.getContext('webgl2')!;
+  
+  // Set up WebGL2 shader program
+  const vertexShaderSource = `#version 300 es
+    in vec2 a_position;
+    uniform vec2 u_resolution;
+    
+    void main() {
+      // Convert pixel coordinates to clip space
+      vec2 clipSpace = (a_position / u_resolution) * 2.0 - 1.0;
+      gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
+    }
+  `;
+  
+  const fragmentShaderSource = `#version 300 es
+    precision mediump float;
+    out vec4 outColor;
+    uniform vec4 u_color;
+    
+    void main() {
+      outColor = u_color;
+    }
+  `;
+  
+  // Create and compile shaders
+  function createShader(gl: WebGL2RenderingContext, type: number, source: string) {
+    const shader = gl.createShader(type)!;
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+      console.error('Shader compile error:', gl.getShaderInfoLog(shader));
+      gl.deleteShader(shader);
+      return null;
+    }
+    return shader;
+  }
+  
+  const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource)!;
+  const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource)!;
+  
+  // Create program
+  const program = gl.createProgram()!;
+  gl.attachShader(program, vertexShader);
+  gl.attachShader(program, fragmentShader);
+  gl.linkProgram(program);
+  
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    console.error('Program link error:', gl.getProgramInfoLog(program));
+  }
+  
+  // Look up attribute and uniform locations
+  const positionAttributeLocation = gl.getAttribLocation(program, 'a_position');
+  const resolutionUniformLocation = gl.getUniformLocation(program, 'u_resolution');
+  const colorUniformLocation = gl.getUniformLocation(program, 'u_color');
+  
+  // Create a buffer for positions
+  const positionBuffer = gl.createBuffer();
+  
+  // Create and set up the vertex array object
+  const vao = gl.createVertexArray();
+  gl.bindVertexArray(vao);
+  
+  // Set up position attribute
+  gl.enableVertexAttribArray(positionAttributeLocation);
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+  gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+  
   function render() {
-    ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-
+    // Clear canvas with white
+    gl.clearColor(1, 1, 1, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    
+    // Use our program
+    gl.useProgram(program);
+    gl.bindVertexArray(vao);
+    
+    // Set uniforms
+    gl.uniform2f(resolutionUniformLocation, CANVAS_WIDTH, CANVAS_HEIGHT);
+    
     const PLAYER_WIDTH = 15;
     const PLAYER_HEIGHT = 15;
-
+    
+    // Draw each player as a blue rectangle
     for (const player of players) {
-      ctx.fillStyle = 'blue';
-      ctx.fillRect(player.pos[0], player.pos[1], PLAYER_WIDTH, PLAYER_HEIGHT);
+      // Set position buffer data for a rectangle
+      const x1 = player.pos[0];
+      const y1 = player.pos[1];
+      const x2 = player.pos[0] + PLAYER_WIDTH;
+      const y2 = player.pos[1] + PLAYER_HEIGHT;
+      
+      // Two triangles to form a rectangle
+      const positions = [
+        x1, y1,
+        x2, y1,
+        x1, y2,
+        x1, y2,
+        x2, y1,
+        x2, y2,
+      ];
+      
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+      
+      // Set blue color
+      gl.uniform4f(colorUniformLocation, 0, 0, 1, 1);
+      
+      // Draw the triangles
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
     }
   }
 
