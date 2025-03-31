@@ -1,1 +1,37 @@
+# First exclude everything
+*
+# Then explicitly include only what we need
+
+# Essential files
+!Dockerfile
+!build.sh
+
+# For common package
+!common/
+!common/package.json
+!common/package-lock.json
+!common/src/
+!common/tsconfig.json
+
+# For client package
+!client/
+!client/package.json
+!client/package-lock.json
+!client/src/
+!client/public/
+!client/index.html
+!client/tsconfig.json
+!client/vite.config.ts
+
+# For server package
+!server/
+!server/package.json
+!server/package-lock.json
+!server/src/
+!server/tsconfig.json
+
+# Exclude node_modules everywhere since they're installed during build
 **/node_modules/
+
+# Exclude any pre-built dist directories - we'll build these in Docker
+**/dist/

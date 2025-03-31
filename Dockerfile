@@ -5,7 +5,6 @@ FROM node:23 AS common-builder
 WORKDIR /app/common
 COPY common/package*.json ./
 RUN npm install
-RUN npm install --only=dev
 COPY common/ ./
 RUN npm run build || echo "No build script in common package"
 
@@ -14,7 +13,6 @@ FROM node:23 AS client-builder
 WORKDIR /app/client
 COPY client/package*.json ./
 RUN npm install
-RUN npm install --only=dev
 COPY client/ ./
 COPY --from=common-builder /app/common /app/common
 RUN npm run build
@@ -24,7 +22,6 @@ FROM node:23 AS server-builder
 WORKDIR /app/server
 COPY server/package*.json ./
 RUN npm install
-RUN npm install --only=dev
 COPY server/ ./
 COPY --from=common-builder /app/common /app/common
 RUN npm run build

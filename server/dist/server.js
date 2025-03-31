@@ -1,14 +1,17 @@
 import express from 'express';
 import * as http from 'http';
+import * as https from 'https';
+import * as fs from 'fs';
 import { WebSocketServer } from 'ws';
 import { removeById } from 'web-game-common';
 const port = 8080;
 const app = express();
 /**
+ * Determine how we're going to serve the web client.
  * Run with NODE_ENV=development to access Vite dev server
  */
 if (process.env.NODE_ENV === 'development') {
-    console.log('Using Vite development server.');
+    console.log('Using Vite development server');
     const vite = await import('vite');
     const viteDevServer = await vite.createServer({
         server: {
@@ -19,13 +22,28 @@ if (process.env.NODE_ENV === 'development') {
     });
     app.use(viteDevServer.middlewares);
 }
-/**
- * Serve client/dist if not running in development mode
- */
 else {
     app.use(express.static('../client/dist'));
 }
-const server = http.createServer(app);
+// Determine if we're in a local or production environment
+const isProduction = process.env.NODE_ENV === 'production';
+const isLocalHTTPS = fs.existsSync('../certificates/cert.pem') && fs.existsSync('../certificates/key.pem');
+// Choose server type based on environment
+let server;
+if (isLocalHTTPS) {
+    // Local HTTPS setup using self-signed certificates
+    const options = {
+        key: fs.readFileSync('../certificates/key.pem'),
+        cert: fs.readFileSync('../certificates/cert.pem')
+    };
+    server = https.createServer(options, app);
+    console.log('Using HTTPS server with self-signed certificates');
+}
+else {
+    // HTTP server (for local dev without certs, or for production where HTTPS is handled by GKE Ingress)
+    server = http.createServer(app);
+    console.log(`Using HTTP server (${isProduction ? 'production uses HTTPS via GKE Ingress' : 'no certificates found'})`);
+}
 const wss = new WebSocketServer({ server });
 /// Reference: https://stackoverflow.com/questions/13364243/websocketserver-node-js-how-to-differentiate-clients
 function generateUniqueID() {
@@ -66,7 +84,6 @@ wss.on('connection', function connection(ws) {
             }
         }
         const action = data.toString();
-        console.log('%s received: %s', id, action);
         if (action == 'MoveUp') {
             players[index].pos[1]--;
         }
@@ -87,5 +104,6 @@ wss.on('connection', function connection(ws) {
     });
 });
 server.listen(port, () => {
-    console.log(`Server listening at http://localhost:${port}`);
+    const protocol = isLocalHTTPS ? 'https' : 'http';
+    console.log(`Server listening at ${protocol}://localhost:${port}`);
 });

@@ -1,0 +1,7 @@
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: web-game-certificate
+spec:
+  domains:
+    - ${DOMAIN_NAME}  # This will be replaced in the deployment script

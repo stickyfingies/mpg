@@ -19,7 +19,8 @@ function connectToWebSocketServer(): Promise<WebSocket> {
   });
 }
 
-(async function () {
+
+(async function main() {
   const socket = await connectToWebSocketServer();
 
   socket.onmessage = function (event) {
@@ -71,7 +72,7 @@ function connectToWebSocketServer(): Promise<WebSocket> {
     keysDown.set(keyMap.get(ev.key)!, false);
   });
 
-  // TODO: global variables
+  // Canvas data
   const CANVAS_WIDTH = 500;
   const CANVAS_HEIGHT = 500;
   const canvasElement = document.getElementById('canvas') as HTMLCanvasElement;
@@ -81,7 +82,7 @@ function connectToWebSocketServer(): Promise<WebSocket> {
   // Get WebGL2 context
   const gl = canvasElement.getContext('webgl2')!;
   
-  // Set up WebGL2 shader program
+  // Shader stages are in the source code (for now)
   const vertexShaderSource = `#version 300 es
     in vec2 a_position;
     uniform vec2 u_resolution;
@@ -103,7 +104,7 @@ function connectToWebSocketServer(): Promise<WebSocket> {
     }
   `;
   
-  // Create and compile shaders
+  // compile shader stages
   function createShader(gl: WebGL2RenderingContext, type: number, source: string) {
     const shader = gl.createShader(type)!;
     gl.shaderSource(shader, source);
@@ -120,7 +121,7 @@ function connectToWebSocketServer(): Promise<WebSocket> {
   const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource)!;
   const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource)!;
   
-  // Create program
+  // Link shader program
   const program = gl.createProgram()!;
   gl.attachShader(program, vertexShader);
   gl.attachShader(program, fragmentShader);

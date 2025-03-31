@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# This script compiles the client and server TypeScript apps.
+
 # Exit on any error
 set -eou pipefail
 

@@ -1,1 +1,10 @@
 **/node_modules/
+
+# SSL certificates and keys
+certificates/
+
+# Temporary Kubernetes files
+*-filled.yaml
+*.tmp
+tmp/
+temp/
